@@ -35,10 +35,12 @@ function limpiar_para_sql(mysqli $conexion, string $valor): string
 }
 
 // 
-// LISTADO/PAGINACION (GET)
+// LISTADO/FILTROS/PAGINACION (GET)
 // 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
+    $busqueda = isset($_GET['busqueda']) ? limpiar_cadena($_GET['busqueda']) : '';
+    $album = isset($_GET['album']) ? limpiar_cadena($_GET['album']) : '';
     $pagina = isset($_GET['pagina']) ? (int) $_GET['pagina'] : 1;
 
     if ($pagina < 1)
@@ -47,8 +49,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $por_pagina = 4;
     $offset = ($pagina - 1) * $por_pagina;
 
+    $condiciones = [];
+    if ($busqueda !== '') {
+        $busqueda_sql = limpiar_para_sql($conexion, $busqueda);
+        $condiciones[] = "titulo LIKE '%{$busqueda_sql}%'";
+    }
+
+    if ($album !== '') {
+        $album_sql = limpiar_para_sql($conexion, $album);
+        $condiciones[] = "album = '{$album_sql}'";
+    }
+
+    $where = '';
+    if (!empty($condiciones))
+        $where = 'WHERE ' . implode(' AND ', $condiciones);
+
     // Total de registros (para paginacion)
-    $sql_total = "SELECT COUNT(*) AS total FROM canciones";
+    $sql_total = "SELECT COUNT(*) AS total FROM canciones {$where}";
     $resultado_total = mysqli_query($conexion, $sql_total);
     $total_registros = 0;
 
@@ -99,6 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $respuesta = [
         'exito' => true,
         'fecha_consulta' => date('Y-m-d H:i:s'),
+        'filtros' => [
+            'busqueda' => $busqueda,
+            'album' => $album,
+        ],
         'paginacion' => [
             'pagina_actual' => $pagina,
             'paginas_totales' => $paginas_totales,

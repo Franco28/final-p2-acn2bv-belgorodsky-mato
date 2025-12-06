@@ -153,6 +153,72 @@ body.tema-claro .tema-btn:hover {
   border-color: var(--acento);
 }
 
+/* Filtros */
+.filters {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--bg-elevated);
+  border-radius: 16px;
+  border: 1px solid var(--borde-suave);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+body.tema-claro .filter-form {
+  box-shadow: var(--sombra-suave);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--borde-suave);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.filter-group input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 1px var(--acento-suave);
+}
+
+/* Botones */
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
 .btn-primary,
 .btn-secondary {
   padding: 8px 14px;

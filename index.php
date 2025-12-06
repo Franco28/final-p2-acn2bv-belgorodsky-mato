@@ -20,6 +20,8 @@ function url_con_tema(string $tema_deseado): string
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/style.css">
 
+    <!-- SweetAlert2 via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="tema-<?php echo htmlspecialchars($tema, ENT_QUOTES, 'UTF-8'); ?>">
@@ -48,6 +50,35 @@ function url_con_tema(string $tema_deseado): string
     </header>
 
     <main class="container">
+
+        <!-- Filtros -->
+        <section class="filters">
+            <form id="formularioFiltros" class="filter-form" autocomplete="off">
+                <div class="filter-group">
+                    <label for="campoBusqueda">Buscar por canción</label>
+                    <input type="text"
+                        id="campoBusqueda"
+                        name="busqueda"
+                        placeholder="Ej: bad guy, NDA, LUNCH...">
+                </div>
+
+                <div class="filter-group">
+                    <label for="selectAlbum">Filtrar por álbum</label>
+                    <select id="selectAlbum" name="album">
+                        <option value="">Todos los álbumes</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">
+                        Aplicar filtros
+                    </button>
+                    <button type="button" id="botonLimpiar" class="btn-secondary">
+                        Limpiar
+                    </button>
+                </div>
+            </form>
+        </section>
 
         <!-- Formulario de alta / edicion -->
         <section class="filters" style="margin-top: 8px;">
@@ -107,6 +138,10 @@ function url_con_tema(string $tema_deseado): string
 
         const contenedorTarjetas = document.getElementById('contenedorTarjetas');
         const textoResultados = document.getElementById('textoResultados');
+        const selectAlbum = document.getElementById('selectAlbum');
+        const campoBusqueda = document.getElementById('campoBusqueda');
+        const formularioFiltros = document.getElementById('formularioFiltros');
+        const botonLimpiar = document.getElementById('botonLimpiar');
         const contenedorPaginacion = document.getElementById('contenedorPaginacion');
 
         const formularioCancion = document.getElementById('formularioCancion');
@@ -128,6 +163,15 @@ function url_con_tema(string $tema_deseado): string
                 busqueda: params.get('busqueda') || '',
                 album: params.get('album') || ''
             };
+        }
+
+        function aplicarFiltrosDesdeUrl() {
+            const {
+                busqueda,
+                album
+            } = obtenerParametrosUrl();
+            if (busqueda) campoBusqueda.value = busqueda;
+            if (album) selectAlbum.value = album; // se terminara de setear luego de llenar el select
         }
 
         function renderizarTarjetas(canciones) {
@@ -223,10 +267,30 @@ function url_con_tema(string $tema_deseado): string
             contenedorPaginacion.appendChild(btnNext);
         }
 
+        function cargarAlbumesSelect(albumes, seleccionado) {
+            selectAlbum.innerHTML = '<option value="">Todos los álbumes</option>';
+            albumes.forEach(nombreAlbum => {
+                if (!nombreAlbum) return;
+                const op = document.createElement('option');
+                op.value = nombreAlbum;
+                op.textContent = nombreAlbum;
+                selectAlbum.appendChild(op);
+            });
+            if (seleccionado) {
+                selectAlbum.value = seleccionado;
+            }
+        }
+
         async function obtenerCanciones() {
             textoResultados.textContent = 'Cargando canciones...';
 
             const params = new URLSearchParams();
+            const textoBusqueda = campoBusqueda.value.trim();
+            const albumSeleccionado = selectAlbum.value.trim();
+
+            if (textoBusqueda !== '') params.append('busqueda', textoBusqueda);
+            if (albumSeleccionado !== '') params.append('album', albumSeleccionado);
+
             params.append('pagina', paginaActual.toString());
 
             try {
@@ -241,6 +305,7 @@ function url_con_tema(string $tema_deseado): string
                     throw new Error(datos.mensaje || 'Error desconocido en la API');
                 }
 
+                cargarAlbumesSelect(datos.albumes || [], datos.filtros.album || '');
                 renderizarTarjetas(datos.canciones);
                 renderizarPaginacion(datos.paginacion);
 
@@ -327,25 +392,32 @@ function url_con_tema(string $tema_deseado): string
                             msg += `• ${data.errores[campo]}\n`;
                         }
                     }
-                    alert("Error " + msg);
+                    Swal.fire('Error', msg, 'error');
                     return;
                 }
 
-                alert("Listo " + data.mensaje || 'Operación realizada correctamente.');
+                Swal.fire('Listo', data.mensaje || 'Operación realizada correctamente.', 'success');
                 resetearFormularioCancion();
                 paginaActual = 1;
                 obtenerCanciones();
 
             } catch (error) {
                 console.error(error);
-                alert("Error " + 'Ocurrió un error al comunicar con el servidor.');
+                Swal.fire('Error', 'Ocurrió un error al comunicar con el servidor.', 'error');
             }
         }
 
         async function confirmarEliminacion(id) {
-            const confirmado = confirm('¿Eliminar canción?\nEsta acción no se puede deshacer.');
+            const resultado = await Swal.fire({
+                title: '¿Eliminar canción?',
+                text: 'Esta acción no se puede deshacer.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
 
-            if (!confirmado) {
+            if (!resultado.isConfirmed) {
                 return;
             }
 
@@ -362,22 +434,35 @@ function url_con_tema(string $tema_deseado): string
                 const data = await respuesta.json();
 
                 if (!respuesta.ok || !data.exito) {
-                    alert("Error " + data.mensaje || 'No se pudo eliminar la canción.');
+                    Swal.fire('Error', data.mensaje || 'No se pudo eliminar la canción.', 'error');
                     return;
                 }
 
-                alert("Eliminada " + data.mensaje || 'La canción fue eliminada.');
+                Swal.fire('Eliminada', data.mensaje || 'La canción fue eliminada.', 'success');
                 obtenerCanciones();
 
             } catch (error) {
                 console.error(error);
-                alert("Eliminada " + 'Ocurrió un error al comunicar con el servidor.');
+                Swal.fire('Error', 'Ocurrió un error al comunicar con el servidor.', 'error');
             }
         }
 
         // 
         // EVENTOS
         // 
+        formularioFiltros.addEventListener('submit', function(e) {
+            e.preventDefault();
+            paginaActual = 1;
+            obtenerCanciones();
+        });
+
+        botonLimpiar.addEventListener('click', function() {
+            campoBusqueda.value = '';
+            selectAlbum.value = '';
+            paginaActual = 1;
+            obtenerCanciones();
+        });
+
         formularioCancion.addEventListener('submit', enviarFormularioCancion);
 
         botonCancelarEdicion.addEventListener('click', function() {
@@ -385,6 +470,7 @@ function url_con_tema(string $tema_deseado): string
         });
 
         document.addEventListener('DOMContentLoaded', function() {
+            aplicarFiltrosDesdeUrl();
             obtenerCanciones();
         });
     </script>
