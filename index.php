@@ -1,7 +1,20 @@
 <?php
 
-$tema = isset($_GET['tema']) ? $_GET['tema'] : 'oscuro';
-$tema = $tema === 'claro' ? 'claro' : 'oscuro';
+function tema_normalizado(?string $valor): string
+{
+    return $valor === 'claro' ? 'claro' : 'oscuro';
+}
+
+// Parametro GET -> cookie -> valor por defecto
+if (isset($_GET['tema'])) {
+    $tema = tema_normalizado($_GET['tema']);
+    // Guardamos preferencia para futuros ingresos/recargas
+    setcookie('tema', $tema, time() + (60 * 60 * 24 * 30), '/'); // cookie de 30 dias de duracion
+} elseif (isset($_COOKIE['tema'])) {
+    $tema = tema_normalizado($_COOKIE['tema']);
+} else {
+    $tema = 'oscuro';
+}
 
 function url_con_tema(string $tema_deseado): string
 {
@@ -130,7 +143,7 @@ function url_con_tema(string $tema_deseado): string
     </main>
 
     <footer class="billie-eilish-footer">
-        <p>Parcial-2-p2-acn2bv-belgorodsky-mato-solis - 2025</p>
+        <p>Parcial-2-p2-acn2bv-belgorodsky-mato - 2025</p>
     </footer>
 
     <script>
